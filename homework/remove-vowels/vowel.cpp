@@ -1,0 +1,6 @@
+#include <algorithm>
+
+std::vector<std::string> removeVowels(std::vector<std::string> str_vec)
+{
+    
+}
