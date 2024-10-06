@@ -18,12 +18,12 @@ double Distance(const std::vector<int>& first, const std::vector<int>& second) {
     }
 
     double sum_of_squares = std::transform_reduce(begin(first), end(first),
-                                                    begin(second),
-                                                    0,
-                                                    std::plus<>(),
-                                                    [](const auto& x, const auto& y) {
-                                                        return pow((x - y), 2);
-                                                    });
+                                                  begin(second),
+                                                  0,
+                                                  std::plus<>(),
+                                                  [](const auto& x, const auto& y) {
+                                                      return pow((x - y), 2);
+                                                  });
 
     return std::sqrt(sum_of_squares);
 }
