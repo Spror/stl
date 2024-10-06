@@ -8,3 +8,7 @@ double ArithmeticAverage(const std::vector<int>& first, const std::vector<int>& 
 
     return (std::reduce(begin(first), end(first)) + std::reduce(begin(second), end(second))) / ((double)(first.size() + second.size()));
 }
+
+double Distance(const std::vector<int>& first, const std::vector<int>& second){
+
+}
