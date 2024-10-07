@@ -32,8 +32,13 @@ ErrorCode divOp(double a, double b, double* result) {
 }
 
 ErrorCode modOp(double a, double b, double* result) {
-    *result = std::fmod(a, b);
-    return ErrorCode::OK;
+    if(a == static_cast<int>(a) &&  b == static_cast<int>(b))
+    {
+        *result = std::fmod(a, b);
+        return ErrorCode::OK;
+    }
+
+    return ErrorCode::ModuleOfNonIntegerValue;
 }
 
 ErrorCode rootOp(double a, double b, double* result) {
@@ -50,7 +55,7 @@ ErrorCode powOp(double a, double b, double* result) {
     return ErrorCode::OK;
 }
 
-ErrorCode facOP(double a, double b, double* result) {
+ErrorCode facOp(double a, double b, double* result) {
     *result = std::tgamma(a + 1);
     return ErrorCode::OK;
 }
@@ -70,7 +75,7 @@ bool containsInvalidFormat(std::string input, int* distance) {
     static const std::unordered_set<char> valid_operators{'+', '-', '/', '*', '%', '!', '^', '$'};
     auto iter = begin(input);
 
-    // skip if  the first place is '-'
+    // skip first place if it's '-'
     if (input[0] == '-')
         iter = std::next(iter, 1);
 
@@ -97,16 +102,16 @@ bool containsInvalidFormat(std::string input, int* distance) {
 }
 
 ErrorCode process(std::string input, double* out) {
-    // std::unordered_map<char, std::function<ErrorCode(double, double, double*)> math_operations{
-    //     {'+', addOp},
-    //     {'-', subOp},
-    //     {'*', mulOp},
-    //     {'/', divOp},
-    //     {'%', modOp},
-    //     {'!', rootOp},
-    //     {'^', powOp},
-    //     {'$', facOP}
-    // };
+    std::unordered_map<char, std::function<ErrorCode(double, double, double*)>> math_operations{
+        {'+', addOp},
+        {'-', subOp},
+        {'*', mulOp},
+        {'/', divOp},
+        {'%', modOp},
+        {'!', rootOp},
+        {'^', powOp},
+        {'$', facOp}
+    };
 
     ErrorCode code;
     int distance;
@@ -122,12 +127,12 @@ ErrorCode process(std::string input, double* out) {
     }
 
     char op = input[distance];
-    double first, second;
+    double first, second{0.0};
 
     try {
         first = std::stod(input.substr(0, distance - 1));
-        second = std::stod(input.substr(distance + 1));
-        std::cout << first << " " << second << "\n";
+        if (op != input.back())
+            second = std::stod(input.substr(distance + 1));
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
