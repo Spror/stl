@@ -32,7 +32,7 @@ ErrorCode divOp(double a, double b, double* result) {
 }
 
 ErrorCode modOp(double a, double b, double* result) {
-    *result = std::fmod(a,b);
+    *result = std::fmod(a, b);
     return ErrorCode::OK;
 }
 
@@ -51,8 +51,7 @@ ErrorCode powOp(double a, double b, double* result) {
 }
 
 ErrorCode facOP(double a, double b, double* result) {
-
-    *result = std::tgamma(a+1);
+    *result = std::tgamma(a + 1);
     return ErrorCode::OK;
 }
 
@@ -61,7 +60,7 @@ bool containsInvalidCharacter(std::string input) {
 
     auto invalid = std::any_of(begin(input), end(input),
                                [](const auto& ch) {
-                                   return !(std::isdigit(ch) || valid_signs.contains(ch));
+                                   return !(std::isdigit(ch) || valid_signs.contains(ch) || std::isblank(ch));
                                });
 
     return invalid;
@@ -70,8 +69,13 @@ bool containsInvalidCharacter(std::string input) {
 bool containsInvalidFormat(std::string input, int* distance) {
     static const std::unordered_set<char> valid_operators{'+', '-', '/', '*', '%', '!', '^', '$'};
     std::string first_str, second_str;
+    auto iter = begin(input);
 
-    auto midle = std::find_if(begin(input), end(input),
+    // allow to put - on the first place
+    if(input[0] == '-')
+        std::next(iter, 1);
+
+    auto midle = std::find_if(iter, end(input),
                               [](const auto& ch) {
                                   return valid_operators.contains(ch);
                               });
@@ -85,7 +89,7 @@ bool containsInvalidFormat(std::string input, int* distance) {
                                    if (ch == '.')
                                        count++;
 
-                                   return !(std::isdigit(ch) || std::isblank(ch)) || count > 2 ;
+                                   return !(std::isdigit(ch) || std::isblank(ch)) && count > 2;
                                });
 
     return invalid;
@@ -120,9 +124,8 @@ ErrorCode process(std::string input, double* out) {
     double first, second;
 
     try {
-        first = std::stod(input.substr(0, distance));
-        second = std::stod(input.substr(distance));
-        std::cout << first << " " << second << "\n";
+        first = std::stod(input.substr(0, distance - 1));
+        second = std::stod(input.substr(distance + 1));
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
