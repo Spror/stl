@@ -68,12 +68,11 @@ bool containsInvalidCharacter(std::string input) {
 
 bool containsInvalidFormat(std::string input, int* distance) {
     static const std::unordered_set<char> valid_operators{'+', '-', '/', '*', '%', '!', '^', '$'};
-    std::string first_str, second_str;
     auto iter = begin(input);
 
-    // allow to put - on the first place
-    if(input[0] == '-')
-        std::next(iter, 1);
+    // skip if  the first place is '-'
+    if (input[0] == '-')
+        iter = std::next(iter, 1);
 
     auto midle = std::find_if(iter, end(input),
                               [](const auto& ch) {
@@ -85,11 +84,13 @@ bool containsInvalidFormat(std::string input, int* distance) {
     std::rotate(begin(input), midle, end(input));
 
     auto invalid = std::any_of(begin(input) + 1, end(input),
-                               [count(0)](const auto& ch) mutable {
+                               [dot_count(0), minus_count(0)](const auto& ch) mutable {
                                    if (ch == '.')
-                                       count++;
+                                       dot_count++;
+                                   else if (ch == '-')
+                                       minus_count++;
 
-                                   return !(std::isdigit(ch) || std::isblank(ch)) && count > 2;
+                                   return !(std::isdigit(ch) || std::isblank(ch)) && dot_count > 2 && minus_count > 2;
                                });
 
     return invalid;
@@ -126,6 +127,7 @@ ErrorCode process(std::string input, double* out) {
     try {
         first = std::stod(input.substr(0, distance - 1));
         second = std::stod(input.substr(distance + 1));
+        std::cout << first << " " << second << "\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
