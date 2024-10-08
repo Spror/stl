@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+using MathOp = ErrorCode (*)(double, double, double*);
+
 ErrorCode addOp(double a, double b, double* result) {
     *result = a + b;
     return ErrorCode::OK;
@@ -24,7 +26,7 @@ ErrorCode mulOp(double a, double b, double* result) {
 
 ErrorCode divOp(double a, double b, double* result) {
     if (b != 0) {
-        *result = a * b;
+        *result = a / b;
         return ErrorCode::OK;
     }
 
@@ -32,8 +34,7 @@ ErrorCode divOp(double a, double b, double* result) {
 }
 
 ErrorCode modOp(double a, double b, double* result) {
-    if(a == static_cast<int>(a) &&  b == static_cast<int>(b))
-    {
+    if (a == static_cast<int>(a) && b == static_cast<int>(b)) {
         *result = std::fmod(a, b);
         return ErrorCode::OK;
     }
@@ -42,8 +43,8 @@ ErrorCode modOp(double a, double b, double* result) {
 }
 
 ErrorCode rootOp(double a, double b, double* result) {
-    if (b >= 0) {
-        *result = std::pow(a, 1 / b);
+    if (a >= 0) {
+        *result = std::pow(a, 1.0 / b);
         return ErrorCode::OK;
     }
 
@@ -56,86 +57,96 @@ ErrorCode powOp(double a, double b, double* result) {
 }
 
 ErrorCode facOp(double a, double b, double* result) {
-    *result = std::tgamma(a + 1);
+    if (a >= 0)
+        *result = std::tgamma(a + 1);
+    else
+        *result = -1 * std::tgamma(std::abs(a) + 1);
+
     return ErrorCode::OK;
 }
 
 bool containsInvalidCharacter(std::string input) {
-    static const std::unordered_set<char> valid_signs{'+', '-', '/', '*', '%', '!', '^', '$', '.'};
+    static const std::unordered_set<char> valid_signs{'+', '-', '/', '*', '%', '!', '^', '$', '.', ','};
 
-    auto invalid = std::any_of(begin(input), end(input),
-                               [](const auto& ch) {
-                                   return !(std::isdigit(ch) || valid_signs.contains(ch) || std::isblank(ch));
-                               });
+    auto valid = std::all_of(begin(input), end(input),
+                             [](const auto& ch) {
+                                 return std::isdigit(ch) || valid_signs.contains(ch) || std::isblank(ch);
+                             });
 
-    return invalid;
+    return !valid;
 }
 
 bool containsInvalidFormat(std::string input, int* distance) {
     static const std::unordered_set<char> valid_operators{'+', '-', '/', '*', '%', '!', '^', '$'};
-    auto iter = begin(input);
 
-    // skip first place if it's '-'
-    if (input[0] == '-')
-        iter = std::next(iter, 1);
+    auto op_iter = std::find_if(std::next(begin(input), 1), end(input),
+                                [](const auto& ch) {
+                                    return valid_operators.contains(ch);
+                                });
 
-    auto midle = std::find_if(iter, end(input),
-                              [](const auto& ch) {
-                                  return valid_operators.contains(ch);
-                              });
+    // If no operator is found, the format is invalid
+    if (op_iter == end(input)) {
+        return true;
+    }
 
-    *distance = std::distance(begin(input), midle);
+    // Special case: the '!' operator must be at the end of the string to be valid
+    if (*op_iter == '!' && op_iter != std::prev(end(input))) {
+        return true;
+    }
 
-    std::rotate(begin(input), midle, end(input));
+    *distance = std::distance(begin(input), op_iter);
 
-    auto invalid = std::any_of(begin(input) + 1, end(input),
-                               [dot_count(0), minus_count(0)](const auto& ch) mutable {
-                                   if (ch == '.')
-                                       dot_count++;
-                                   else if (ch == '-')
-                                       minus_count++;
+    // Count occurrences of '.' to check if the format is correct
+    if (std::count(begin(input), op_iter, '.') > 1 || std::count(op_iter, end(input), '.') > 1) {
+        return true;
+    }
 
-                                   return !(std::isdigit(ch) || std::isblank(ch)) && dot_count > 2 && minus_count > 2;
-                               });
+    input.erase(op_iter);
 
-    return invalid;
+    // Count occurrences of '-' to check if the format is correct
+    if (std::count(begin(input), end(input), '-') > 2) {
+        return true;
+    }
+
+    auto valid = std::all_of(begin(input), end(input),
+                             [](const auto& ch) mutable {
+                                 return std::isdigit(ch) || std::isblank(ch) || ch == '-' || ch == '.';
+                             });
+
+    return !valid;
 }
 
 ErrorCode process(std::string input, double* out) {
-    std::unordered_map<char, std::function<ErrorCode(double, double, double*)>> math_operations{
+    std::unordered_map<char, MathOp> math_operations{
         {'+', addOp},
         {'-', subOp},
         {'*', mulOp},
         {'/', divOp},
         {'%', modOp},
-        {'!', rootOp},
+        {'!', facOp},
         {'^', powOp},
-        {'$', facOp}
-    };
+        {'$', rootOp}};
 
-    ErrorCode code;
     int distance;
 
     if (containsInvalidCharacter(input)) {
-        code = ErrorCode::BadCharacter;
-        return code;
+        return ErrorCode::BadCharacter;
     }
 
-    if (containsInvalidFormat(input, &distance) || distance == 0) {
-        code = ErrorCode::BadFormat;
-        return code;
+    if (containsInvalidFormat(input, &distance)) {
+        return ErrorCode::BadFormat;
     }
 
     char op = input[distance];
-    double first, second{0.0};
+    double a, b{0.0};
 
     try {
-        first = std::stod(input.substr(0, distance - 1));
+        a = std::stod(input.substr(0, distance));
         if (op != input.back())
-            second = std::stod(input.substr(distance + 1));
+            b = std::stod(input.substr(distance + 1));
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';
     }
 
-    return ErrorCode::OK;
+    return math_operations[op](a, b, out);
 }
