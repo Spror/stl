@@ -89,9 +89,12 @@ bool containsInvalidFormat(std::string input, int* distance) {
         return true;
     }
 
-    // Special case: the '!' operator must be at the end of the string to be valid
-    if (*op_iter == '!' && op_iter != std::prev(end(input))) {
-        return true;
+    if (op_iter == std::prev(end(input))) {
+        if (*op_iter == '!') {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     *distance = std::distance(begin(input), op_iter);
