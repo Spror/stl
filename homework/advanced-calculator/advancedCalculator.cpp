@@ -129,26 +129,18 @@ ErrorCode process(std::string input, double* out) {
         {'^', powOp},
         {'$', rootOp}};
 
-    int distance;
-
     if (containsInvalidCharacter(input)) {
         return ErrorCode::BadCharacter;
     }
 
+    int distance;
     if (containsInvalidFormat(input, &distance)) {
         return ErrorCode::BadFormat;
     }
 
     char op = input[distance];
-    double a, b{0.0};
+    double a = std::stod(input.substr(0, distance));
+    double b = (op != input.back()) ? std::stod(input.substr(distance + 1)) : 0.0;
 
-    try {
-        a = std::stod(input.substr(0, distance));
-        if (op != input.back())
-            b = std::stod(input.substr(distance + 1));
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << '\n';
-    }
-
-    return math_operations[op](a, b, out);
+    return math_operations.at(op)(a, b, out);
 }
