@@ -119,7 +119,7 @@ bool containsInvalidFormat(std::string input, int* distance) {
 }
 
 ErrorCode process(std::string input, double* out) {
-    std::unordered_map<char, MathOp> math_operations{
+    const std::unordered_map<char, MathOp> math_operations{
         {'+', addOp},
         {'-', subOp},
         {'*', mulOp},
