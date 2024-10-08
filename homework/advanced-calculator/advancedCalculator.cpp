@@ -89,12 +89,11 @@ bool containsInvalidFormat(std::string input, int* distance) {
         return true;
     }
 
-    if (op_iter == std::prev(end(input))) {
-        if (*op_iter == '!') {
-            return false;
-        } else {
-            return true;
-        }
+    if (op_iter == std::prev(end(input)) && *op_iter != '!') {
+        return true;
+    }
+    if (op_iter != std::prev(end(input)) && *op_iter == '!') {
+        return true;
     }
 
     *distance = std::distance(begin(input), op_iter);
